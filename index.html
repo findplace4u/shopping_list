@@ -206,13 +206,13 @@
         const SUPABASE_URL = 'https://kuifzjjolihomscnunsl.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1aWZ6ampvbGlob21zY251bnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NjM1MTQsImV4cCI6MjA4NTIzOTUxNH0.oZBL-IUUpJ58AThhKzChhhZrrWVbE-vFyVYgD2w7tDY';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let items = [];
 
         // Supabase에서 아이템 로드
         async function loadItems() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('shopping_item')
                 .select('*')
                 .order('created_at', { ascending: true });
@@ -232,7 +232,7 @@
             const text = input.value.trim();
 
             if (text) {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('shopping_item')
                     .insert([{ text, checked: false }])
                     .select()
@@ -255,7 +255,7 @@
             const item = items.find(i => i.id === id);
             if (!item) return;
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('shopping_item')
                 .update({ checked: !item.checked })
                 .eq('id', id);
@@ -271,7 +271,7 @@
 
         // 아이템 삭제
         async function deleteItem(id) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('shopping_item')
                 .delete()
                 .eq('id', id);
