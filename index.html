@@ -200,11 +200,89 @@
         <div class="stats" id="stats"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        let items = JSON.parse(localStorage.getItem('shoppingList')) || [];
+        // Supabase 설정
+        const SUPABASE_URL = 'https://kuifzjjolihomscnunsl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1aWZ6ampvbGlob21zY251bnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NjM1MTQsImV4cCI6MjA4NTIzOTUxNH0.oZBL-IUUpJ58AThhKzChhhZrrWVbE-vFyVYgD2w7tDY';
 
-        function saveItems() {
-            localStorage.setItem('shoppingList', JSON.stringify(items));
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let items = [];
+
+        // Supabase에서 아이템 로드
+        async function loadItems() {
+            const { data, error } = await supabase
+                .from('shopping_item')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('데이터 로드 실패:', error);
+                return;
+            }
+
+            items = data || [];
+            renderList();
+        }
+
+        // 아이템 추가
+        async function addItem() {
+            const input = document.getElementById('itemInput');
+            const text = input.value.trim();
+
+            if (text) {
+                const { data, error } = await supabase
+                    .from('shopping_item')
+                    .insert([{ text, checked: false }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('아이템 추가 실패:', error);
+                    return;
+                }
+
+                items.push(data);
+                renderList();
+                input.value = '';
+            }
+            input.focus();
+        }
+
+        // 체크 상태 토글
+        async function toggleItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            const { error } = await supabase
+                .from('shopping_item')
+                .update({ checked: !item.checked })
+                .eq('id', id);
+
+            if (error) {
+                console.error('상태 변경 실패:', error);
+                return;
+            }
+
+            item.checked = !item.checked;
+            renderList();
+        }
+
+        // 아이템 삭제
+        async function deleteItem(id) {
+            const { error } = await supabase
+                .from('shopping_item')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('삭제 실패:', error);
+                return;
+            }
+
+            items = items.filter(i => i.id !== id);
+            renderList();
         }
 
         function renderList() {
@@ -217,11 +295,11 @@
                 return;
             }
 
-            list.innerHTML = items.map((item, index) => `
+            list.innerHTML = items.map((item) => `
                 <li class="list-item ${item.checked ? 'checked' : ''}">
-                    <div class="checkbox" onclick="toggleItem(${index})"></div>
+                    <div class="checkbox" onclick="toggleItem(${item.id})"></div>
                     <span class="item-text">${escapeHtml(item.text)}</span>
-                    <button class="delete-btn" onclick="deleteItem(${index})">×</button>
+                    <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
                 </li>
             `).join('');
 
@@ -235,36 +313,12 @@
             return div.innerHTML;
         }
 
-        function addItem() {
-            const input = document.getElementById('itemInput');
-            const text = input.value.trim();
-
-            if (text) {
-                items.push({ text, checked: false });
-                saveItems();
-                renderList();
-                input.value = '';
-            }
-            input.focus();
-        }
-
-        function toggleItem(index) {
-            items[index].checked = !items[index].checked;
-            saveItems();
-            renderList();
-        }
-
-        function deleteItem(index) {
-            items.splice(index, 1);
-            saveItems();
-            renderList();
-        }
-
         document.getElementById('itemInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addItem();
         });
 
-        renderList();
+        // 앱 초기화
+        loadItems();
     </script>
 </body>
 </html>
